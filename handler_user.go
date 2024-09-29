@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/1l1k3tw3nty5/rssfeed/auth"
 	"github.com/1l1k3tw3nty5/rssfeed/internal/database"
 	"github.com/google/uuid"
 )
@@ -36,6 +37,25 @@ func (apiConf *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Reque
 		log.Printf("Failed to create new user: %v", err)
 		respondWithError(w, 500, fmt.Sprintln("Internal Error"))
 	}
-	respondWithJson(w, 201, user)
+	respondWithJson(w, 201, databaseUserToUser(user))
 
+}
+
+func (apiConf *apiConfig) handlerGetUser(w http.ResponseWriter, r *http.Request) {
+
+	apiKey, err := auth.GetApiKey(r.Header)
+	if err != nil {
+		log.Println("Failed to get api key: ", err)
+		respondWithError(w, 403, fmt.Sprintf("Auth failed: %v", err))
+		return
+	}
+
+	userByApiKey, err := apiConf.DB.GetUserByApiKey(r.Context(), apiKey)
+	if err != nil {
+		log.Printf("Failed to get user by api key: %v", err)
+		respondWithError(w, 400, fmt.Sprintf("Failed to get user: %v", err))
+		return
+	}
+
+	respondWithJson(w, 200, databaseUserToUser(userByApiKey))
 }
